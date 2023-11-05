@@ -1,0 +1,31 @@
+{
+  "name": "discord.js-managers",
+  "version": "1.0.0",
+  "description": "A package to synchronize your bot's commands and events and managing interactions",
+  "main": "index.js",
+  "scripts": {
+    "test": "node index.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Furkan-Soyar/discord.js-managers.git"
+  },
+  "keywords": [
+    "manager",
+    "discord",
+    "events",
+    "commands",
+    "commands manager",
+    "discord commands",
+    "event manager",
+    "discord manager",
+    "discord handler",
+    "discord command handler"
+  ],
+  "author": "furkan-soyar",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/Furkan-Soyar/discord.js-managers/issues"
+  },
+  "homepage": "https://github.com/Furkan-Soyar/discord.js-managers#readme"
+}
