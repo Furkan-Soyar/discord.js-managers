@@ -1,8 +1,9 @@
 {
   "name": "discord.js-managers",
-  "version": "1.0.0",
+  "version": "1.1.1",
   "description": "A package to synchronize your bot's commands and events and managing interactions",
   "main": "index.js",
+  "type": "module",
   "scripts": {
     "test": "node index.js"
   },

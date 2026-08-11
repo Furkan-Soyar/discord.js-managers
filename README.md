@@ -10,21 +10,19 @@
   <a href="https://www.npmjs.com/package/discord.js-managers">
     <img src="https://img.shields.io/npm/v/discord.js-managers?style=flat-square&color=9400d3" alt="npm version">
   </a>
-  <a href="https://www.npmjs.com/package/discord.js-managers">
-    <img src="https://img.shields.io/bundlephobia/min/discord.js-managers?style=flat-square&color=ff6347" alt="minified size">
-  </a>
     <img src="https://img.shields.io/npm/l/discord.js-managers?style=flat-square&color=4169e1" alt="license">
 </p>
 
 ## About 
 A package to synchronize your bot's commands and events and managing interactions
 
-- Quickly registers new Commands
-- Auto deletes deleted Commands
+- Managing Commands
 - Managing Interactions
-- Managing events
+- Managing Events
+- Localization support for commands and responses
+- Category support for commands
 
-## Instaling discord.js-managers
+## Installing discord.js-managers
 
 ```sh-session
 npm i discord.js-managers
@@ -43,6 +41,8 @@ const handler = new Handler({
     client: client,
     commandsFolder: "commandsFolder",
     eventsFolder: "eventsFolder",
+    localesFolder: "locales",
+    defaultLanguage: "en-US",
     consoleLogging: true, 
     checkUpdate: true 
 })
@@ -54,13 +54,7 @@ client.login(TOKEN);
 ```
 - Create a command folder with the name you entered in the `commandsFolder` property
 - Create a event folder with the name you entered in the `eventsFolder` property
-
-eventsFolder/ready.js (example)
-```js
-export default (client) => {
-    console.log(`Logged in as ${client.user.tag}!`)
-}
-```
+- Optionally, create a locales folder with the name you entered in the `localesFolder` property
 
 ## Add Command
 - Create a javascript file in the your `commandsFolder`
@@ -74,12 +68,13 @@ export default {
 	}
 }
 ```
-- Optionally, [`type [default: 1]`](https://discord-api-types.dev/api/discord-api-types-v10/enum/ApplicationCommandType), [`guild`](https://old.discordjs.dev/#/docs/discord.js/main/class/Guild?scrollTo=id), [`permission`](https://discord-api-types.dev/api/discord-api-types-payloads/common#PermissionFlagsBits), [`options`](https://discord.js.org/#/docs/discord.js/main/typedef/ApplicationCommandOptionData), [`componentInteraction [function]`](https://old.discordjs.dev/#/docs/discord.js/main/class/MessageComponentInteraction), [`autocompleteInteraction [function]`](https://old.discordjs.dev/#/docs/discord.js/main/class/AutocompleteInteraction), [`modalInteraction [function]`](https://old.discordjs.dev/#/docs/discord.js/main/class/AutocompleteInteraction)
+- Optionally, [`type [default: 1]`](https://discord-api-types.dev/api/discord-api-types-v10/enum/ApplicationCommandType), [`cooldown`]() ,[`guild`](https://old.discordjs.dev/#/docs/discord.js/main/class/Guild?scrollTo=id), [`permission`](https://discord-api-types.dev/api/discord-api-types-payloads/common#PermissionFlagsBits), [`options`](https://discord.js.org/#/docs/discord.js/main/typedef/ApplicationCommandOptionData), [`componentInteraction [function]`](https://old.discordjs.dev/#/docs/discord.js/main/class/MessageComponentInteraction), [`autocompleteInteraction [function]`](https://old.discordjs.dev/#/docs/discord.js/main/class/AutocompleteInteraction), [`modalInteraction [function]`](https://old.discordjs.dev/#/docs/discord.js/main/class/AutocompleteInteraction)
 ```js
 export default {
 	type: 1,
 	name: "test",
 	description: "Test Command",
+	cooldown: 5,
 	guild: 895139517651258664,
 	options: [
 		{
@@ -149,12 +144,112 @@ export default {
 }
 ```
 
+## Command Categories
+- You can organize commands into categories by placing them in subfolders inside your `commandsFolder`
+- The subfolder name will be used as the category name and shown in the console log
+```
+commandsFolder/
+├── ping.js
+├── test.js
+└── admin/
+    └── ban.js
+```
+- Console output:
+```
+Command synchronized > Ping
+Command synchronized > Test
+admin command synchronized > Ban
+```
+
 ## Add Event
 - Make the name of the javascript file the name of the event you want to add
 ![img1](https://i.imgur.com/0B6OxSO.png)
 - First export the client and then the objects to be rendered with the default 
 ```js
 export default (client, role) => { ··· }
+```
+
+## Localization
+- Create a `locales` folder (or the name you set in `localesFolder`) in your project root
+- Inside, create a folder for each locale (e.g. `en-US`)
+- Each locale folder can contain two files:
+  - `commandData.json` — for command name/description localizations
+  - `command.json` — for in-response text localizations
+
+### commandData.json
+Used to localize command names, descriptions, options and choices registered to Discord.
+```json
+{
+    "ping": {
+        "name": "ping",
+        "description": "Replies with Pong",
+        "options": {
+            "option_name": {
+                "name": "localized_option_name",
+                "description": "Localized option description"
+            }
+        }
+    }
+}
+```
+
+### command.json
+Used to localize texts sent in responses with `client.translate()` (default file).
+```json
+{
+    "ping": {
+        "replyContent": "Pong!",
+        "followUpContent": "Option: {option}"
+    }
+}
+```
+
+### Custom JSON files (e.g. common.json)
+You can also create custom locale files like `common.json` inside your locale folders for general or shared messages.
+`locales/en-US/common.json`:
+```json
+{
+    "errors": {
+        "noPermission": "You don't have permission to use this, {user}!"
+    },
+    "embeds": {
+        "footer": "Server: {guildName}"
+    }
+}
+```
+
+### client.translate(key, interaction, variables, file)
+- `key` — dot-separated key path (e.g. `"replyContent"`, `"modal.title"`, or `"errors.noPermission"`)
+- `interaction` — the Discord interaction object (locale is detected automatically) OR a locale string (e.g. `"en-US"`, `"tr"`)
+- `variables` — optional object for variable replacement (e.g. `{ option: "value" }`)
+- `file` — optional, defaults to `"command"` (matches `command.json`). Pass `"common"` to load from `common.json`
+
+#### Example using default command.json:
+```js
+execute(client, interaction, options) {
+    interaction.reply(client.translate("replyContent", interaction))
+    interaction.followUp(client.translate("followUpContent", interaction, { option: options.getString("option_name") }))
+}
+```
+
+#### Example using custom common.json:
+```js
+execute(client, interaction, options) {
+    // Using interaction object
+    interaction.reply(client.translate("errors.noPermission", interaction.locale, { user: interaction.user.username }, "common"))
+
+    // Or passing locale string directly
+    console.log(client.translate("embeds.footer", interaction.locale, { guildName: interaction.guild.name }, "common"))
+}
+```
+
+- Variables in your locale file are written as `{variableName}` and replaced at runtime:
+```json
+{
+    "ping": {
+        "followUpContent": "Option: {option}"
+    }
+}
 ```
 
 ## Handling Components
@@ -396,16 +491,17 @@ export default {
 ```
 
 ## Command Functions
-### \<handler>.commands.set({ type, name, ... })
+### \<handler>.commands.create({ type, name, ... })
 - You can create new commands from within the file you want
 - Forced parameters; `name`, `description [only for chatInput commands]`, `execute [function]`
-- Optionally parameters; `type`, `guild`, `permissions`, `options`, `componentInteraction [function]`,
+- Optionally parameters; `type`, `cooldown`, `guild`, `permissions`, `options`, `componentInteraction [function]`,
 `autocompleteInteraction [function]`, `modalInteraction [function]`
 ```js
-<handler>.commands.set({
+<handler>.commands.create({
   //type: 1,
 	name: "test",
 	description: "Test Command",
+  //cooldown: 5,
   //guild: 895···42,
   //options: [ ··· ],
   //permissions: [ ··· ],
@@ -478,23 +574,23 @@ true
 ```
 
 ## Event Functions
-### \<handler>.events.set({ type, name, ... })
+### \<handler>.events.create(event, eventListener [function])
 - You can create new events from within the file you want
 - Forced parameters; `event`, `eventListener [function]`
 ```js
-<handler>.events.set("roleCreate", (role) => { ··· })
+<handler>.events.create("roleCreate", (role) => { ··· })
 ```
 
 ### \<handler>.events.get(event, callback() => {})
 - Get event's function with the name of your event
 - Returns the function of the [promise] event function or you can use the callback
 ```js
-<handler>.events.get("ready", eventFunc => {
+<handler>.events.get("clientReady", eventFunc => {
 	console.log(eventFunc.toString())
 })
 
 // or
-<handler>.events.get("ready").then(eventFunc => {
+<handler>.events.get("clientReady").then(eventFunc => {
 	console.log(eventFunc.toString())
 })
 
@@ -506,12 +602,12 @@ true
 - Checks whether your event exists with the name you entered.
 - returns [promise] boolean or you can use the callback
 ```js
-<handler>.events.has("ready", isEvent => {
+<handler>.events.has("clientReady", isEvent => {
 	console.log(isEvent)
 })
 
 // or
-<handler>.events.has("ready").then(isEvent => {
+<handler>.events.has("clientReady").then(isEvent => {
 	console.log(isEvent)
 })
 
@@ -522,9 +618,6 @@ true
 ### \<handler>.events.delete(event)
 - Deletes of the event with the name of your event
 ```js
-<handler>.events.delete("roleCreate")
-
-// or
 <handler>.events.delete("roleCreate")
 ```
 
